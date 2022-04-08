@@ -1,38 +1,57 @@
-import logging
-from aiogram import Bot, Dispatcher, executor, types
-from config import API_TOKEN
-import keyboard as kb
-from onesec_api import Mailbox
-import json
-import asyncio
-
-logging.basicConfig(level=logging.INFO)
-bot = Bot(token=API_TOKEN)
-dp = Dispatcher(bot)
+import os
+import requests
+import telebot
+from telebot import types, apihelper
 
 
-@dp.message_handler(content_types=['text'])
-async def texthandler(m: types.Message):
-	if m.text != '✉️ Получить почту':
-		await m.answer(f'👋Приветствую тебя.\n🙂Этот бот создан для быстрого получения временной почты\n\n ✅Подписывайся: @chop_bots', reply_markup=kb.menu)
-	elif m.text == '✉️ Получить почту':
-		ma = Mailbox('')
-		email = f'{ma._mailbox_}@1secmail.com'
-		await m.answer(f'📫 Твоя почта: {email}\n\n📩Почта проверяется автоматически каждые 5 секунд, если придет новое письмо, мы вас об этом оповестим!\n\n⚠️На 1 почту можно получить только - 1 письмо⚠️')
-		while True:
-			mb = ma.filtred_mail()
-			if isinstance(mb, list):
-				mf = ma.mailjobs('read',mb[0])
-				js = mf.json()
-				fromm = js['from']
-				theme = js['subject']
-				mes = js['textBody']
-				await m.answer(f'📩Новое письмо:\n<b>От</b>: {fromm}\n<b>Тема</b>: {theme}\n<b>Сообщение</b>: {mes}', reply_markup=kb.menu, parse_mode='HTML')
-				break
-			else:
-				pass
-			await asyncio.sleep(5)
- 
+bot = telebot.TeleBot('5101656331:AAHzdO1JgViYtCFdyn4IUKbBkmpxdpRSbTc')
 
-if __name__ == '__main__':
-	executor.start_polling(dp, skip_updates=True) # Запуск
+chat_ids_file = 'user.txt'
+users_amount = [0]
+def save_chat_id(chat_id):
+    chat_id = str(chat_id)
+    with open(chat_ids_file,"a+") as ids_file:
+        ids_file.seek(0)
+        ids_list = [line.split('\n')[0] for line in ids_file]
+        if chat_id not in ids_list:
+            ids_file.write(f'{chat_id}\n')
+            ids_list.append(chat_id)
+            print(f'NEW USER: {chat_id}')
+        else:
+            print(f'chat_id {chat_id} is already saved')
+        users_amount[0] = len(ids_list)
+    return
+
+@bot.message_handler(commands=['start'])
+def start_message(message):
+	save_chat_id(message.chat.id)
+	bot.send_message(message.chat.id,'''Assalomu alaykuk Xush kelibsiz menga rasm yuboring men sizga unig Havolasini yuboraman.''',disable_web_page_preview = True,parse_mode='HTML')
+
+@bot.message_handler(content_types=['photo'])
+def send_text(message):
+	file_info = bot.get_file(message.photo[len(message.photo) - 1].file_id)
+	downloaded_file = bot.download_file(file_info.file_path)
+	with open(f'{message.chat.id}.jpg', 'wb') as new_file:
+		new_file.write(downloaded_file)
+	new_file.close()
+	filesfiles = open(f'{message.chat.id}.jpg', "rb")
+	files = {"files": filesfiles}
+	r = requests.post("https://telegra.ph/upload", files=files)
+	info = r.json()
+	err = info[0].get("error")
+	if err:
+		bot.reply_to(message, f"Failed to upload. Reason: {err}")
+		return
+	url = "https://telegra.ph" + info[0].get("src")
+	keyboard = types.InlineKeyboardMarkup()	
+    
+    
+	keyboard.add(types.InlineKeyboardButton(text='Kanalimiz',url=f't.me/off_python))
+	bot.reply_to(message, f'''<b>🖼 Surat moffaqiyatli yuklandi :</b>
+<b>└Havola:</b> {url}''',disable_web_page_preview = True,parse_mode='HTML',reply_markup=keyboard)
+	filesfiles.close()
+	os.remove(f'{message.chat.id}.jpg')
+    
+    
+
+bot.polling(True)
