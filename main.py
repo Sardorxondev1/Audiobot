@@ -46,7 +46,7 @@ def send_text(message):
 	keyboard = types.InlineKeyboardMarkup()	
     
     
-	keyboard.add(types.InlineKeyboardButton(text='Kanalimiz',url=f't.me/off_python))
+	keyboard.add(types.InlineKeyboardButton(text='Kanalimiz',url=f't.me/off_python'))
 	bot.reply_to(message, f'''<b>🖼 Surat moffaqiyatli yuklandi :</b>
 <b>└Havola:</b> {url}''',disable_web_page_preview = True,parse_mode='HTML',reply_markup=keyboard)
 	filesfiles.close()
